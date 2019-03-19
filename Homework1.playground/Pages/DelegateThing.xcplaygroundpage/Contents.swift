@@ -9,6 +9,13 @@ class MyViewController : UIViewController, UIGestureRecognizerDelegate {
     var y: CGFloat = 0.0
     var movingCircle: UIView = UIView()
     
+    enum AnimationCases: Int {
+        case appear
+        case destroy
+        case grab
+        case put
+    }
+    
     override func loadView() {
         view = UIView()
         view.backgroundColor = UIColor.white
@@ -36,7 +43,7 @@ class MyViewController : UIViewController, UIGestureRecognizerDelegate {
         circle.layer.cornerRadius = size * 0.5
         
         view.addSubview(circle)
-        animate(circle, case: "Appear")
+        animate(circle, case: .appear)
         
         // Add gestures to circle
         let tripleTap = UITapGestureRecognizer(target: self, action: #selector(handleTripleTap(_:)))
@@ -47,7 +54,7 @@ class MyViewController : UIViewController, UIGestureRecognizerDelegate {
     }
     
     @objc func handleTripleTap(_ tap: UITapGestureRecognizer) {
-        animate(tap.view!, case: "Destroy")
+        animate(tap.view!, case: .destroy)
         print("Triple Tap!")
     }
     
@@ -66,7 +73,7 @@ class MyViewController : UIViewController, UIGestureRecognizerDelegate {
             x = press.location(in: view).x - movingCircle.center.x
             y = press.location(in: view).y - movingCircle.center.y
             
-            animate(movingCircle, case: "Grab")
+            animate(movingCircle, case: .grab)
             
         case .changed:
             
@@ -75,7 +82,7 @@ class MyViewController : UIViewController, UIGestureRecognizerDelegate {
             movingCircle.center.y = press.location(in: view).y - y
             
         case .ended:
-            animate(movingCircle, case: "Put")
+            animate(movingCircle, case: .put)
         default:
             print("Unknown state of the LongPress!")
         }
@@ -83,9 +90,9 @@ class MyViewController : UIViewController, UIGestureRecognizerDelegate {
     
     // animation function must be very concern about the View want to animate
     // there's no option there to be optional (and unwrapping to have less complicated code)
-    func animate(_ view: UIView, case mode: String) {
+    func animate(_ view: UIView, case mode: AnimationCases) {
         switch mode {
-        case "Appear":
+        case .appear:
             view.transform = CGAffineTransform(scaleX: 1.5, y: 1.5)
             view.alpha = 0.0
             UIView.animate(withDuration: 0.15, animations: {
@@ -96,19 +103,19 @@ class MyViewController : UIViewController, UIGestureRecognizerDelegate {
                     view.transform = .identity
                 })
             })
-        case "Destroy":
+        case .destroy:
             UIView.animate(withDuration: 0.1, animations: {
                 view.transform = CGAffineTransform(scaleX: 1.5, y: 1.5)
                 view.alpha = 0.0
             }, completion: { completed in
                 view.removeFromSuperview()
             })
-        case "Grab":
+        case .grab:
             UIView.animate(withDuration: 0.2, animations: {
                 view.alpha = 0.8
                 view.transform = CGAffineTransform(scaleX: 1.2, y: 1.2)
             })
-        case "Put":
+        case .put:
             UIView.animate(withDuration: 0.2, animations: {
                 view.alpha = 1
                 view.transform = .identity
