@@ -5,9 +5,7 @@ import PlaygroundSupport
 
 class MyViewController : UIViewController, UIGestureRecognizerDelegate {
     
-    var x: CGFloat = 0.0
-    var y: CGFloat = 0.0
-    var movingCircle: UIView = UIView()
+    var grabOffsets: [UIView: CGVector] = [:]
     
     enum AnimationCases: Int {
         case appear
@@ -55,48 +53,46 @@ class MyViewController : UIViewController, UIGestureRecognizerDelegate {
     
     @objc func handleTripleTap(_ tap: UITapGestureRecognizer) {
         animate(tap.view!, case: .destroy)
-        print("Triple Tap!")
     }
     
     @objc func handleLongPress(_ press: UILongPressGestureRecognizer) {
+        let movedCircle = press.view!
         
         switch press.state {
         case .began:
-            
-            // get only once the view of the circle (performance friendly)
-            movingCircle = press.view!
-            
-            // move it on the top of another (esthetics)
-            view.bringSubviewToFront(movingCircle)
-            
-            // pos relative to the center of UI
-            x = press.location(in: view).x - movingCircle.center.x
-            y = press.location(in: view).y - movingCircle.center.y
-            
-            animate(movingCircle, case: .grab)
-            
+        
+            let grabPoint = press.location(in: view)
+            let circleCenter = movedCircle.center
+            let grabOffset = CGVector(
+                dx: grabPoint.x - circleCenter.x,
+                dy: grabPoint.y - circleCenter.y)
+            grabOffsets[movedCircle] = grabOffset
+            view.bringSubviewToFront(movedCircle)
+            animate(movedCircle, case: .grab)
+        
         case .changed:
             
-            // Moving circle
-            movingCircle.center.x = press.location(in: view).x - x
-            movingCircle.center.y = press.location(in: view).y - y
+            guard let grabOffset = grabOffsets[movedCircle] else {return}
+            let touchLocation = press.location(in: view)
+            movedCircle.center = CGPoint(
+                x: touchLocation.x - grabOffset.dx,
+                y: touchLocation.y - grabOffset.dy)
             
         case .ended:
-            animate(movingCircle, case: .put)
+            grabOffsets[movedCircle] = nil
+            animate(movedCircle, case: .put)
         default:
             print("Unknown state of the LongPress!")
         }
     }
-    
-    // animation function must be very concern about the View want to animate
-    // there's no option there to be optional (and unwrapping to have less complicated code)
+
     func animate(_ view: UIView, case mode: AnimationCases) {
         switch mode {
         case .appear:
             view.transform = CGAffineTransform(scaleX: 1.5, y: 1.5)
             view.alpha = 0.0
             UIView.animate(withDuration: 0.15, animations: {
-                view.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+                view.transform = .init(scaleX: 0.9, y: 0.9)
                 view.alpha = 1.0
             }, completion: { completed in
                 UIView.animate(withDuration: 0.1, animations: {
@@ -105,7 +101,7 @@ class MyViewController : UIViewController, UIGestureRecognizerDelegate {
             })
         case .destroy:
             UIView.animate(withDuration: 0.1, animations: {
-                view.transform = CGAffineTransform(scaleX: 1.5, y: 1.5)
+                view.transform = .init(scaleX: 1.5, y: 1.5)
                 view.alpha = 0.0
             }, completion: { completed in
                 view.removeFromSuperview()
@@ -113,15 +109,13 @@ class MyViewController : UIViewController, UIGestureRecognizerDelegate {
         case .grab:
             UIView.animate(withDuration: 0.2, animations: {
                 view.alpha = 0.8
-                view.transform = CGAffineTransform(scaleX: 1.2, y: 1.2)
+                view.transform = .init(scaleX: 1.2, y: 1.2)
             })
         case .put:
             UIView.animate(withDuration: 0.2, animations: {
                 view.alpha = 1
                 view.transform = .identity
             })
-        default:
-            print("Something wrong with animation key, use proper one!")
         }
     }
     
